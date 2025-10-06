@@ -1,72 +1,76 @@
-const taskInput = document.getElementById('taskInput');
-const addBtn = document.getElementById('addBtn');
-const taskList = document.getElementById('taskList');
+const input = document.getElementById("taskInput");
+const addBtn = document.getElementById("addBtn");
+const taskList = document.getElementById("taskList");
 
-addBtn.addEventListener('click', addTask);
-window.onload = loadTasks;
+let todos = [];
+
+addBtn.addEventListener("click", addTask);
+input.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") addTask();
+});
 
 function addTask() {
-  const taskText = taskInput.value.trim();
-  if (taskText === '') return alert('Please enter a task!');
+  const text = input.value.trim();
+  if (!text) return;
 
-  const li = document.createElement('li');
-  li.innerHTML = `
-    <input type="checkbox" class="check">
-    <span>${taskText}</span>
-    <div>
-      <button class="edit">Edit</button>
-      <button class="delete">Delete</button>
-    </div>
-  `;
-  taskList.appendChild(li);
-  taskInput.value = '';
-  saveTasks();
+  const task = { id: Date.now(), text, completed: false };
+  todos.push(task);
+  input.value = "";
+  renderTasks();
 }
 
-taskList.addEventListener('click', e => {
-  if (e.target.classList.contains('delete')) {
-    e.target.parentElement.parentElement.remove();
-    saveTasks();
-  }
-
-  if (e.target.classList.contains('edit')) {
-    const span = e.target.parentElement.previousElementSibling;
-    const newText = prompt('Edit your task:', span.textContent);
-    if (newText) span.textContent = newText;
-    saveTasks();
-  }
-});
-
-taskList.addEventListener('change', e => {
-  if (e.target.classList.contains('check')) {
-    e.target.nextElementSibling.classList.toggle('completed');
-    saveTasks();
-  }
-});
-
-function saveTasks() {
-  const tasks = [];
-  document.querySelectorAll('#taskList li').forEach(li => {
-    tasks.push({
-      text: li.querySelector('span').textContent,
-      completed: li.querySelector('.check').checked
-    });
-  });
-  localStorage.setItem('tasks', JSON.stringify(tasks));
+function toggleComplete(id) {
+  todos = todos.map((todo) =>
+    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+  );
+  renderTasks();
 }
 
-function loadTasks() {
-  const data = JSON.parse(localStorage.getItem('tasks')) || [];
-  data.forEach(t => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <input type="checkbox" class="check" ${t.completed ? 'checked' : ''}>
-      <span class="${t.completed ? 'completed' : ''}">${t.text}</span>
-      <div>
-        <button class="edit">Edit</button>
-        <button class="delete">Delete</button>
-      </div>
-    `;
-    taskList.appendChild(li);
+function editTask(id) {
+  const task = todos.find((t) => t.id === id);
+  const newText = prompt("Edit task:", task.text);
+  if (newText) {
+    task.text = newText;
+    renderTasks();
+  }
+}
+
+function deleteTask(id) {
+  todos = todos.filter((todo) => todo.id !== id);
+  renderTasks();
+}
+
+function renderTasks() {
+  taskList.innerHTML = "";
+
+  todos.forEach((todo) => {
+    const li = document.createElement("li");
+    li.classList.toggle("completed", todo.completed);
+
+    const span = document.createElement("span");
+    span.className = "task-text";
+    span.textContent = todo.text;
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const completeBtn = document.createElement("button");
+    completeBtn.className = "btn-complete";
+    completeBtn.innerHTML = '<i class="ri-checkbox-circle-line"></i>';
+    completeBtn.onclick = () => toggleComplete(todo.id);
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn-edit";
+    editBtn.innerHTML = '<i class="ri-edit-2-line"></i>';
+    editBtn.onclick = () => editTask(todo.id);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "btn-delete";
+    deleteBtn.innerHTML = '<i class="ri-delete-bin-6-line"></i>';
+    deleteBtn.onclick = () => deleteTask(todo.id);
+
+    actions.append(completeBtn, editBtn, deleteBtn);
+    li.append(span, actions);
+    taskList.append(li);
   });
 }
